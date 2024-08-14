@@ -9,7 +9,44 @@ const frames = {
 const images = [];
 let imagesLoaded = 0;
 
+// New Preloader: Lenis scroll control variables and functions
+let isScrollDisabled = false;
+
+// New Preloader: Updated disable scroll function
+function disableScroll() {
+    isScrollDisabled = true;
+    lenis.stop();
+}
+
+// New Preloader: Updated enable scroll function
+function enableScroll() {
+    isScrollDisabled = false;
+    lenis.start();
+}
+
+const preloader = document.getElementById('preloader');
+const progressBar = document.querySelector('.progress');
+const progressText = document.querySelector('.progress-text');
+
+function updateProgress(loaded, total) {
+    const progress = (loaded / total) * 100;
+    progressBar.style.width = `${progress}%`;
+    progressText.textContent = `${Math.round(progress)}%`;
+}
+
+// New Preloader: Updated hidePreloader function
+function hidePreloader() {
+    preloader.style.opacity = '0';
+    setTimeout(() => {
+        preloader.style.display = 'none';
+        enableScroll(); // Enable scrolling after preloader is hidden
+    }, 500);
+}
+
+// Image Preload
 function preloadImages() {
+    disableScroll();
+
     for (let i = 1; i <= frames.maxIndex; i++) {
         const imageUrl = `./Assets/Frames/frame_${i
             .toString()
@@ -20,14 +57,18 @@ function preloadImages() {
 
         img.onload = () => {
             imagesLoaded++;
+
+            updateProgress(imagesLoaded, frames.maxIndex);
             if (imagesLoaded === frames.maxIndex) {
                 loadImage(frames.currentIndex);
                 startAnimation();
+                hidePreloader();
             }
         };
     }
 }
 
+// Adjust and Draw Images
 function loadImage(index) {
     const img = images[index];
 
@@ -52,6 +93,7 @@ function loadImage(index) {
     frames.currentIndex = index;
 }
 
+// Animating the Stuff
 function startAnimation() {
     let tl = gsap.timeline({
         scrollTrigger: {
@@ -63,8 +105,7 @@ function startAnimation() {
 
     function updateFrame(index) {
         return {
-            currentIndex: index+13, // for 1344th index, we have to add "+13" in this!
-            // ease: "linear", // index = 1415
+            currentIndex: index+13,
             onUpdate: function () {
                 loadImage(Math.floor(frames.currentIndex));
                 console.info(frames.currentIndex);
@@ -124,15 +165,19 @@ function startAnimation() {
         .to(".animate5", { y: 1400, ease: "linear" }, "fifteen");
 }
 
-// Smooth Scrolling - Lenis
+// New Preloader: Updated Lenis initialization and raf function
 const lenis = new Lenis();
+
 function raf(time) {
-    lenis.raf(time);
+    if (!isScrollDisabled) {
+        lenis.raf(time);
+    }
     requestAnimationFrame(raf);
 }
+
 requestAnimationFrame(raf);
 
-// Load Image on Resize
+// Load Image on Window Resize
 window.addEventListener("resize", function () {
     loadImage(Math.floor(frames.currentIndex));
 });
